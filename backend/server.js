@@ -23,15 +23,44 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // Initialize database
-initDatabase();
+try {
+  console.log('🔄 Initializing database...');
+  initDatabase();
+  console.log('✅ Database initialized successfully');
+} catch (error) {
+  console.error('❌ Database initialization failed:', error);
+  process.exit(1);
+}
 
 // Middleware
 // CORS configuration - allow all in development, restrict in production
 const corsOptions = {
-  origin: process.env.NODE_ENV === 'production' 
-    ? process.env.FRONTEND_URL || 'https://yourdomain.com'  // Update with your production domain
-    : true,  // Allow all origins in development
-  credentials: true
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (process.env.NODE_ENV === 'production') {
+      const allowedOrigins = [
+        process.env.FRONTEND_URL,
+        'https://voucher-system-frontend-production.up.railway.app',
+        'https://voucher-system-frontend.up.railway.app'
+      ].filter(Boolean); // Remove undefined values
+      
+      if (allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        console.log('CORS blocked origin:', origin);
+        console.log('Allowed origins:', allowedOrigins);
+        callback(new Error('Not allowed by CORS'));
+      }
+    } else {
+      // Development: allow all origins
+      callback(null, true);
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 };
 app.use(cors(corsOptions));
 app.use(express.json());
@@ -82,9 +111,28 @@ if (!isEmailConfigured) {
   console.log('\n✅ Email notifications are configured and ready\n');
 }
 
+// Error handling for uncaught exceptions
+process.on('uncaughtException', (error) => {
+  console.error('❌ UNCAUGHT EXCEPTION:', error);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ UNHANDLED REJECTION at:', promise, 'reason:', reason);
+  process.exit(1);
+});
+
 // Start server
-app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
-  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+// Railway requires listening on 0.0.0.0, not just localhost
+const HOST = process.env.HOST || '0.0.0.0';
+app.listen(PORT, HOST, () => {
+  console.log('='.repeat(50));
+  console.log(`✅ Server is running on http://${HOST}:${PORT}`);
+  console.log(`✅ Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`✅ Timezone: ${process.env.TZ || 'UTC'}`);
+  console.log('='.repeat(50));
+}).on('error', (error) => {
+  console.error('❌ SERVER STARTUP ERROR:', error);
+  process.exit(1);
 });
 
