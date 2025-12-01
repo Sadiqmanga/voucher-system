@@ -66,30 +66,30 @@ app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve static files from frontend build in production
-if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, '../frontend/dist')));
-  
-  // Serve React app for all non-API routes
-  app.get('*', (req, res) => {
-    if (!req.path.startsWith('/api')) {
-      res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
-    }
-  });
-}
-
-// Health check endpoint
+// Health check endpoint (must be before static files)
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
-// Routes
+// API Routes (must be before static files to take precedence)
 app.use('/api/auth', authRoutes);
 app.use('/api/vouchers', voucherRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/logs', logRoutes);
 app.use('/api/test-email', testEmailRoutes);
+
+// Serve static files from frontend build in production (AFTER API routes)
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(path.join(__dirname, '../frontend/dist')));
+  
+  // Serve React app for all non-API routes (catch-all, must be last)
+  app.get('*', (req, res) => {
+    if (!req.path.startsWith('/api')) {
+      res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
+    }
+  });
+}
 
 // Check email configuration on startup
 const smtpUser = process.env.SMTP_USER;
