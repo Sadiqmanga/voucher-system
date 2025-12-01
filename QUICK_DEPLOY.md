@@ -144,6 +144,8 @@ git commit -m "Initial commit"
 7. **Add Frontend Environment Variable:**
    - Click on frontend service → "Variables"
    - Add: `VITE_API_URL` = your backend Railway URL
+   - **Example:** `VITE_API_URL=https://voucher-backend-production.up.railway.app`
+   - **Important:** Must include `https://` and NO trailing slash
 
 8. **Generate Frontend Domain:**
    - Click "Settings" → "Generate Domain"
