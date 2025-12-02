@@ -1,14 +1,26 @@
 // API utility for making requests
-// Uses Vite proxy in development (localhost)
+// Supports both development (proxy) and production (absolute URL)
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
 /**
- * Get the API URL for a given endpoint
+ * Get the full API URL for a given endpoint
  * @param {string} endpoint - API endpoint (e.g., '/api/vouchers')
- * @returns {string} Relative path (Vite proxy handles it)
+ * @returns {string} Full URL or relative path
  */
 export function getApiUrl(endpoint) {
-  // Use relative path - Vite proxy will forward to backend
-  return endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  // Remove leading slash if present to avoid double slashes
+  const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  
+  // If API_BASE_URL is set, use it (production)
+  if (API_BASE_URL) {
+    // Remove trailing slash from base URL if present
+    const baseUrl = API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL;
+    return `${baseUrl}${cleanEndpoint}`;
+  }
+  
+  // Otherwise use relative path (development with proxy)
+  return cleanEndpoint;
 }
 
 /**

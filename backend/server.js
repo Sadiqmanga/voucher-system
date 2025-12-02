@@ -26,20 +26,35 @@ const PORT = process.env.PORT || 3001;
 initDatabase();
 
 // Middleware
-// CORS - allow all origins in development
-app.use(cors({
-  origin: true,  // Allow all origins
+// CORS configuration - allow all in development, restrict in production
+const corsOptions = {
+  origin: process.env.NODE_ENV === 'production' 
+    ? process.env.FRONTEND_URL || 'https://yourdomain.com'  // Update with your production domain
+    : true,  // Allow all origins in development
   credentials: true
-}));
+};
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Serve static files from frontend build in production
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(path.join(__dirname, '../frontend/dist')));
+  
+  // Serve React app for all non-API routes
+  app.get('*', (req, res) => {
+    if (!req.path.startsWith('/api')) {
+      res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
+    }
+  });
+}
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
-// API Routes
+// Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/vouchers', voucherRoutes);
 app.use('/api/reports', reportRoutes);
@@ -68,8 +83,8 @@ if (!isEmailConfigured) {
 }
 
 // Start server
-app.listen(PORT, 'localhost', () => {
-  console.log(`✅ Server is running on http://localhost:${PORT}`);
-  console.log(`✅ Database initialized`);
+app.listen(PORT, () => {
+  console.log(`Server is running on http://localhost:${PORT}`);
+  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 });
 
