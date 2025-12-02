@@ -13,23 +13,40 @@ function Login({ onLogin }) {
     setLoading(true);
 
     try {
+      // Trim email and password to remove whitespace
+      const trimmedEmail = email.trim();
+      const trimmedPassword = password.trim();
+
+      if (!trimmedEmail || !trimmedPassword) {
+        setError('Please enter both email and password');
+        setLoading(false);
+        return;
+      }
+
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email: trimmedEmail, password: trimmedPassword }),
       });
+
+      // Check if response is ok before parsing JSON
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Login failed' }));
+        throw new Error(errorData.error || 'Login failed');
+      }
 
       const data = await response.json();
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Login failed');
+      if (!data.token || !data.user) {
+        throw new Error('Invalid response from server');
       }
 
       onLogin(data.user, data.token);
     } catch (err) {
-      setError(err.message);
+      console.error('Login error:', err);
+      setError(err.message || 'Login failed. Please try again.');
     } finally {
       setLoading(false);
     }
