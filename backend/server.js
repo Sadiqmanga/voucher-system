@@ -23,73 +23,29 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // Initialize database
-try {
-  console.log('🔄 Initializing database...');
-  initDatabase();
-  console.log('✅ Database initialized successfully');
-} catch (error) {
-  console.error('❌ Database initialization failed:', error);
-  process.exit(1);
-}
+initDatabase();
 
 // Middleware
-// CORS configuration - allow all in development, restrict in production
-const corsOptions = {
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    
-    if (process.env.NODE_ENV === 'production') {
-      const allowedOrigins = [
-        process.env.FRONTEND_URL,
-        'https://voucher-system-frontend-production.up.railway.app',
-        'https://voucher-system-frontend.up.railway.app'
-      ].filter(Boolean); // Remove undefined values
-      
-      if (allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        console.log('CORS blocked origin:', origin);
-        console.log('Allowed origins:', allowedOrigins);
-        callback(new Error('Not allowed by CORS'));
-      }
-    } else {
-      // Development: allow all origins
-      callback(null, true);
-    }
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-};
-app.use(cors(corsOptions));
+// CORS - allow all origins in development
+app.use(cors({
+  origin: true,  // Allow all origins
+  credentials: true
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Health check endpoint (must be before static files)
+// Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
-// API Routes (must be before static files to take precedence)
+// API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/vouchers', voucherRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/logs', logRoutes);
 app.use('/api/test-email', testEmailRoutes);
-
-// Serve static files from frontend build in production (AFTER API routes)
-if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, '../frontend/dist')));
-  
-  // Serve React app for all non-API routes (catch-all, must be last)
-  app.get('*', (req, res) => {
-    if (!req.path.startsWith('/api')) {
-      res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
-    }
-  });
-}
 
 // Check email configuration on startup
 const smtpUser = process.env.SMTP_USER;
@@ -111,28 +67,9 @@ if (!isEmailConfigured) {
   console.log('\n✅ Email notifications are configured and ready\n');
 }
 
-// Error handling for uncaught exceptions
-process.on('uncaughtException', (error) => {
-  console.error('❌ UNCAUGHT EXCEPTION:', error);
-  process.exit(1);
-});
-
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('❌ UNHANDLED REJECTION at:', promise, 'reason:', reason);
-  process.exit(1);
-});
-
 // Start server
-// Railway requires listening on 0.0.0.0, not just localhost
-const HOST = process.env.HOST || '0.0.0.0';
-app.listen(PORT, HOST, () => {
-  console.log('='.repeat(50));
-  console.log(`✅ Server is running on http://${HOST}:${PORT}`);
-  console.log(`✅ Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`✅ Timezone: ${process.env.TZ || 'UTC'}`);
-  console.log('='.repeat(50));
-}).on('error', (error) => {
-  console.error('❌ SERVER STARTUP ERROR:', error);
-  process.exit(1);
+app.listen(PORT, 'localhost', () => {
+  console.log(`✅ Server is running on http://localhost:${PORT}`);
+  console.log(`✅ Database initialized`);
 });
 

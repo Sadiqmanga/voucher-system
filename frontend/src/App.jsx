@@ -6,7 +6,6 @@ import AccountantDashboard from './components/AccountantDashboard';
 import GMDashboard from './components/GMDashboard';
 import UploaderDashboard from './components/UploaderDashboard';
 import AdminDashboard from './components/AdminDashboard';
-import { getApiUrl } from './utils/api';
 import './App.css';
 
 function App() {
@@ -16,7 +15,7 @@ function App() {
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
-      fetch(getApiUrl('/api/auth/me'), {
+      fetch('/api/auth/me', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
